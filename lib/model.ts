@@ -253,7 +253,9 @@ export function fitPowerCurve(train: Protocol[]): { a: number; b: number } {
   return { a: my - b * mx, b };
 }
 
-/** R1 form (spec-literal): power curve refit per fold + category median residual shrunk n/(n+4). */
+/** R1 form: power curve refit per fold + category median residual with four 0s appended,
+ *  times a growth factor and a track-record factor. */
+export const R1_CONVENTION = 'R1 form: power curve refit per fold + category median residual with four 0s appended, x growth clamp(1+0.75*7d%/100, 0.6, 1.6) x track (0.55+0.45*min(age,730)/730).';
 export function r1Value(train: Protocol[], p: Protocol): number {
   const { a, b } = fitPowerCurve(train);
   const resid: Record<string, number[]> = {};
@@ -262,9 +264,10 @@ export function r1Value(train: Protocol[], p: Protocol): number {
     (resid[q.category] ??= []).push(r);
   }
   const r = resid[p.category] ?? [];
-  const n = r.length;
-  const eff = n ? median(r) * n / (n + 4) : 0; // 4 pseudo-comps at 0
-  return Math.max(1, Math.round(Math.pow(10, a + b * Math.log10(p.tvl_usd) + eff)));
+  const eff = median([...r, 0, 0, 0, 0]); // shrink with 4 pseudo-comps at 0 (append, then median)
+  const growth = p.change_7d == null ? 1 : Math.max(0.6, Math.min(1.6, 1 + 0.75 * p.change_7d / 100));
+  const track = 0.55 + 0.45 * Math.min(p.age, 730) / 730;
+  return Math.max(1, Math.round(Math.pow(10, a + b * Math.log10(p.tvl_usd) + eff) * growth * track));
 }
 
 export const flatMedianMultiple = (train: Protocol[]): number =>
@@ -345,15 +348,20 @@ export interface LogisticModel {
 }
 
 function logisticFeat(p: Protocol, groups: string[], withGroups: boolean): number[] {
-  const x = [1, Math.log10(p.age)];
+  const x = [1, Math.log10(Math.max(1, p.age))];
   if (withGroups) for (const g of groups) x.push(p.group === g ? 1 : 0);
   return x;
 }
 
-/** Newton-fit logistic regression of records-token on [1, log10 age] (+ group dummies). */
+/** Group-model dummies: every group except 'trading' (the reference group), in this order. */
+export const ODDS_GROUPS = ['credit', 'yield', 'rwa', 'infra', 'other'];
+
+/** Newton-fit logistic regression of records-token on [1, log10 age] (+ group dummies).
+ *  Base model penalties [0, 0.1]; group model penalties 0 on intercept, 1.0 on every
+ *  other coefficient (age slope included). Hessian weights p(1-p)+1e-6 jitter. */
 export function fitLogistic(rows: Protocol[], withGroups: boolean): LogisticModel {
-  const groups = withGroups ? GROUP_NAMES : [];
-  const pen = [0, 0.1, ...groups.map(() => 1.0)]; // ridge 0.1 on slope, 1.0 on dummies
+  const groups = withGroups ? ODDS_GROUPS : [];
+  const pen = withGroups ? [0, 1.0, ...groups.map(() => 1.0)] : [0, 0.1];
   const X = rows.map((p) => logisticFeat(p, groups, withGroups));
   const y = rows.map((p) => (p.tok ? 1 : 0));
   const k = X[0].length;
@@ -363,7 +371,7 @@ export function fitLogistic(rows: Protocol[], withGroups: boolean): LogisticMode
     const H: number[][] = Array.from({ length: k }, () => new Array<number>(k).fill(0));
     const g = new Array<number>(k).fill(0);
     for (let i = 0; i < X.length; i++) {
-      const w = pr[i] * (1 - pr[i]);
+      const w = pr[i] * (1 - pr[i]) + 1e-6;
       for (let j = 0; j < k; j++) {
         g[j] += X[i][j] * (y[i] - pr[i]);
         for (let kk = j; kk < k; kk++) H[j][kk] += X[i][j] * X[i][kk] * w;
@@ -376,7 +384,7 @@ export function fitLogistic(rows: Protocol[], withGroups: boolean): LogisticMode
     }
     const d = solve(H, g);
     beta = beta.map((v, j) => v + d[j]);
-    if (Math.max(...d.map(Math.abs)) < 1e-12) break;
+    if (Math.max(...d.map(Math.abs)) < 1e-10) break;
   }
   return { beta, groups, withGroups };
 }
