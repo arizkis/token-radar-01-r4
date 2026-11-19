@@ -1,0 +1,1 @@
+{"name": "token-radar-01-r4", "version": "4.0.0", "private": true, "type": "module", "description": "Launch Atlas 4 — token-radar-01 round 4. Node 22 stdlib only; run with: node main.ts --input <snapshot.json>", "scripts": {"start": "node main.ts"}}

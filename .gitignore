@@ -1,0 +1,9 @@
+# working document — never part of the entry (deleted before the final commit)
+SPEC-R4.md
+# local build output
+out/
+out-a/
+out-b/
+node_modules/
+*.log
+.DS_Store
