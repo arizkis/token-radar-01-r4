@@ -430,11 +430,22 @@ export const impliedValue = (value: number, odds: number): number => Math.round(
 
 // ---------------------------------------------------------------- universe / set-aside
 
-const EXCLUDED_CATEGORIES = new Set(['CEX', 'Bridge', 'Canonical Bridge', 'Liquid Staking', 'Liquid Restaking', 'Restaked BTC', 'Cross Chain Bridge']);
+const EXCLUDED_CATEGORIES = new Set(['CEX', 'Bridge', 'Canonical Bridge', 'Liquid Staking', 'Liquid Restaking', 'Restaked BTC']);
 
-/** The starter's VERSIONED rule: a trailing version marker such as " V2", " v3", " 2.0". */
+/** VERSIONED: a name ending with a SPACE then V/v<digits> (optionally .<digits>), or <digits>.<digits>.
+ *  "CommunityV3" (no space), "Tessera V" (no digits), "Project 0" (bare integer), "Project X" are NOT versioned. */
 export function isVersioned(name: string): boolean {
-  return /(?:\s|^)(?:v?\d+(?:\.\d+)*|[ivx]+)$/i.test(name) || /v\d+(?:\.\d+)*$/i.test(name);
+  return /\s(?:v\d+(?:\.\d+)*|\d+\.\d+(?:\.\d+)*)$/i.test(name);
+}
+
+/** NAME WORD: the whole word "wrapped", "staked" or "staking" (case-insensitive, word boundaries). */
+export function isNameWord(name: string): boolean {
+  return /\b(?:wrapped|staked|staking)\b/i.test(name);
+}
+
+/** EXCHANGE NAME: a name beginning with a listed exchange brand. */
+export function isExchangeName(name: string): boolean {
+  return /^(?:binance|coinbase|bybit|kraken|bitget|okx|bitfinex|gemini)/i.test(name);
 }
 
 export interface SetAsideRow {
@@ -447,14 +458,16 @@ export interface Universe {
   accounting: { ranked: number; token: number; setAside: number; total: number; reasonGroups: Record<string, number> };
 }
 
+/** Reason precedence: category, then versioned, then name word, then exchange name. */
 function reasonFor(p: Protocol): { reason: string; reasonGroup: string } {
   if (p.category === 'CEX') return { reason: "exchange's own product (CEX category)", reasonGroup: 'exchange' };
-  if (p.category === 'Bridge' || p.category === 'Canonical Bridge' || p.category === 'Cross Chain Bridge')
+  if (p.category === 'Bridge' || p.category === 'Canonical Bridge')
     return { reason: `bridge family (${p.category})`, reasonGroup: 'bridge' };
   if (p.category === 'Liquid Staking' || p.category === 'Liquid Restaking' || p.category === 'Restaked BTC')
     return { reason: `staking family (${p.category})`, reasonGroup: 'staking' };
   if (isVersioned(p.name)) return { reason: 'versioned name', reasonGroup: 'versioned' };
-  return { reason: 'excluded category', reasonGroup: 'other' };
+  if (isNameWord(p.name)) return { reason: 'product of a traded token (wrapped/staked/staking in name)', reasonGroup: 'nameword' };
+  return { reason: "exchange's own product (exchange name)", reasonGroup: 'exchange' };
 }
 
 export function universe(protocols: Protocol[], watchlist: string[]): Universe {
@@ -464,7 +477,7 @@ export function universe(protocols: Protocol[], watchlist: string[]): Universe {
   const setAside: SetAsideRow[] = [];
   for (const p of noTok) {
     if (wl.has(p.slug)) { ranked.push(p); continue; } // watchlist overrides every exclusion
-    if (EXCLUDED_CATEGORIES.has(p.category) || isVersioned(p.name)) {
+    if (EXCLUDED_CATEGORIES.has(p.category) || isVersioned(p.name) || isNameWord(p.name) || isExchangeName(p.name)) {
       const { reason, reasonGroup } = reasonFor(p);
       setAside.push({ slug: p.slug, name: p.name, category: p.category, chain: p.chains[0], tvl_usd: p.tvl_usd, reason, reasonGroup });
     } else {
