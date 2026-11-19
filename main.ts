@@ -11,20 +11,23 @@ import { buildDossier } from './vendor/makefun-board.ts';
 
 const repoRoot = import.meta.dirname;
 
-function readInput(): string {
+function flag(name: string): string | undefined {
   const args = process.argv.slice(2);
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--input' && args[i + 1]) return args[i + 1];
-    if (args[i].startsWith('--input=')) return args[i].slice('--input='.length);
+    if (args[i] === '--' + name && args[i + 1]) return args[i + 1];
+    if (args[i].startsWith('--' + name + '=')) return args[i].slice(name.length + 3);
   }
-  return '/input/snapshot.json';
+  return undefined;
 }
 
-const inputPath = readInput();
-const outDir = process.env.MAKEFUN_OUTPUT_DIR || '/output';
+const inputPath = flag('input') ?? '/input/snapshot.json';
+const outDir = flag('out') ?? flag('output') ?? process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 mkdirSync(outDir, { recursive: true });
 
 const raw = JSON.parse(readFileSync(inputPath, 'utf8'));
+if (typeof raw.as_of !== 'string' || !Array.isArray(raw.protocols) || !Array.isArray(raw.watchlist)) {
+  throw new Error(`main: ${inputPath} is not a snapshot (need as_of, protocols[], watchlist[])`);
+}
 const snapshot = parseSnapshot(raw);
 const board = buildRadar(snapshot); // runs the self-check gates internally
 

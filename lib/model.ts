@@ -636,6 +636,15 @@ export function economics(implied: number, bandLowImplied: number, tvl: number, 
   };
 }
 
+// ---------------------------------------------------------------- ranking comparator
+
+/** The board's tie-break rule: implied desc, then TVL desc, then slug asc. */
+export const impliedCmp = (imp: (p: Protocol) => number) => (a: Protocol, b: Protocol): number =>
+  imp(b) - imp(a) || b.tvl_usd - a.tvl_usd || (a.slug < b.slug ? -1 : 1);
+/** Index variant of impliedCmp over a precomputed implied array (used per bootstrap refit). */
+export const impliedIdxCmp = (items: Protocol[], imp: number[]) => (a: number, b: number): number =>
+  imp[b] - imp[a] || items[b].tvl_usd - items[a].tvl_usd || (items[a].slug < items[b].slug ? -1 : 1);
+
 // ---------------------------------------------------------------- Part 3: bootstrap analytics
 
 export interface RowAnalytics {
@@ -681,8 +690,7 @@ export function bootstrapAnalytics(
       return imp;
     });
     // rank within this refit: implied desc, TVL desc, slug asc
-    const order = ranked.map((_, idx) => idx).sort((a, b) =>
-      refitImplied[b] - refitImplied[a] || ranked[b].tvl_usd - ranked[a].tvl_usd || (ranked[a].slug < ranked[b].slug ? -1 : 1));
+    const order = ranked.map((_, idx) => idx).sort(impliedIdxCmp(ranked, refitImplied));
     order.forEach((idx, place) => ranks[idx].push(place + 1));
   }
   const out = new Map<string, RowAnalytics>();
@@ -713,7 +721,7 @@ export function bootstrapAnalytics(
 export function tilts(peers: Protocol[], ranked: Protocol[], oddsBySlug: Map<string, number>, fullRanks: Map<string, number>): { moved: number; total: number } {
   const model = fitRidge(peers, true);
   const imp = ranked.map((p) => impliedValue(valueIfLaunched(model, p), oddsBySlug.get(p.slug) as number));
-  const order = ranked.map((_, i) => i).sort((a, b) => imp[b] - imp[a] || ranked[b].tvl_usd - ranked[a].tvl_usd || (ranked[a].slug < ranked[b].slug ? -1 : 1));
+  const order = ranked.map((_, i) => i).sort(impliedIdxCmp(ranked, imp));
   const tiltRank = new Map<string, number>();
   order.forEach((idx, place) => tiltRank.set(ranked[idx].slug, place + 1));
   let moved = 0;
@@ -782,8 +790,7 @@ export function buildRadar(snapshot: Snapshot): Board {
     : (valueBySlug.get(p.slug) as number);
 
   // rank: implied desc, TVL desc, slug asc
-  const rankedSorted = [...uni.ranked].sort((a, b) =>
-    impliedOf(b) - impliedOf(a) || b.tvl_usd - a.tvl_usd || (a.slug < b.slug ? -1 : 1));
+  const rankedSorted = [...uni.ranked].sort(impliedCmp(impliedOf));
   const fullRanks = new Map<string, number>();
   rankedSorted.forEach((p, i) => fullRanks.set(p.slug, i + 1));
 
