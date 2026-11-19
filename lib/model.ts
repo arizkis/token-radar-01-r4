@@ -499,9 +499,9 @@ export const DEPOSITS = [250, 500, 1000, 2500, 5000, 10000];
 export const DEPOSITOR_SHARE = 0.10;
 export const TBILL = 0.04;
 
-/** Six network actions at the primary chain's band. */
-const L2_SET = new Set(['Mantle', 'Manta', 'Ink', 'Morph', 'World Chain', 'Reya Network', 'zkSync Era', 'Starknet', 'RISE', 'Fluent', 'Linea', 'Blast', 'Scroll', 'Taiko', 'Mode', 'opBNB', 'Polygon zkEVM', 'Bob', 'Bitlayer', 'Merlin', 'BSquared', 'Mezo', 'RSK']);
-export const FEE_TABLE: Record<string, number> = { Ethereum: 288, Base: 18, Arbitrum: 24, Optimism: 24, Solana: 3, Binance: 12, BSC: 12, Polygon: 6, Tron: 24 };
+/** Six network actions at the primary chain's band. Named totals win; then the L2 list pays $24; all else $48. */
+const L2_SET = new Set(['Arbitrum', 'Optimism', 'Base', 'Polygon', 'Starknet', 'xDai', 'Scroll', 'Linea', 'zkSync Era', 'Blast', 'Manta', 'Mode', 'Ink', 'Monad', 'Berachain', 'Merlin', 'Hyperliquid L1', 'Plasma', 'Arc', 'Pharos', 'Robinhood Chain', 'BSquared', 'Etherlink', 'Cronos', 'Sei', 'GravityBridge']);
+export const FEE_TABLE: Record<string, number> = { Ethereum: 288, Base: 18, Arbitrum: 24, Optimism: 24, Solana: 3, Binance: 12, 'BNB Chain': 12, Polygon: 6, Tron: 24 };
 
 export function chainFee(chain: string): { band: number; perAction: number; klass: string } {
   let band: number, klass: string;
