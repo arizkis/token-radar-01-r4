@@ -559,8 +559,8 @@ const CORE_ACTION: Record<string, string> = {
 const coreAction = (cat: string): string => CORE_ACTION[cat] ?? 'Take the core position on';
 
 const money = (x: number): string => (Number.isInteger(x) ? `$${x}` : `$${x.toFixed(2)}`);
-const tierOf = (tvl: number): number => (tvl < 1e8 ? 0 : tvl < 1e9 ? 1 : 2);
-const tierLabel = (t: number): string => ['sub-$100M', '$100M–$1B', '$1B+'][t];
+const tierBonusOf = (tvl: number): number => (tvl >= 1e9 ? 30 : tvl >= 1e8 ? 20 : tvl >= 1e7 ? 10 : 0);
+const tierLabel = (tvl: number): string => (tvl >= 1e9 ? '$1B+' : tvl >= 1e8 ? '$100M–$1B' : tvl >= 1e7 ? '$10M–$100M' : 'sub-$10M');
 const ageLabel = (age: number): string => (age < 180 ? 'young protocol' : age < 365 ? 'establishing protocol' : 'mature protocol');
 export const holdDaysOf = (age: number): number => (age < 180 ? 60 : age < 365 ? 45 : 30);
 
@@ -578,24 +578,33 @@ export interface FarmPlan {
 export function farmPlan(p: Protocol, implied: number): FarmPlan {
   const chain = p.chains[0];
   const { band, perAction, klass } = chainFee(chain);
-  const tier = tierOf(p.tvl_usd);
-  const ageBonus = p.age < 180 ? 10 : p.age < 365 ? 5 : 0;
+  const tierBonus = tierBonusOf(p.tvl_usd);
   const hold = holdDaysOf(p.age);
-  const minutes = [25, 30 + tier * 10, 20, 25 + ageBonus, 0, 20, 25, 20];
-  const hours = minutes.reduce((s, v) => s + v, 0) / 60;
+  const weeks = Math.ceil(hold / 7);
+  const minutes = [20, 15, 10, 10, 5 * weeks, 15, 15, 65 + tierBonus - 5 * weeks];
+  const hours = minutes.reduce((s, v) => s + v, 0) / 60; // = (150 + tierBonus) / 60
   const core = coreAction(p.category);
   const actions = [
     `Set up a funded wallet on ${chain} and stage the gas float for six network actions`,
-    `${core} ${p.name} at the ${tierLabel(tier)} TVL tier`,
+    `${core} ${p.name} at the ${tierLabel(p.tvl_usd)} TVL tier`,
     `Enroll ${p.name} (${p.category}) in the points and eligibility program and link the wallet`,
     `Run the weekly qualifying cadence on ${p.name}: rebalance, compound and log activity`,
-    `Hold the position for ${hold} days (${ageLabel(p.age)}) without withdrawing; set a calendar reminder`,
+    `Monitor the position weekly across the ${hold}-day hold window (${ageLabel(p.age)}) without withdrawing`,
     `Check accrued points and rewards on ${p.name}; confirm the eligibility snapshot dates`,
     `Pre-claim verification on ${p.name}: confirm token generation terms, vesting and the claim contract`,
     `Exit discipline on ${p.name}: unwind the position, realize rewards and rotate capital on schedule`,
   ];
   const costs = [perAction, perAction * 2, perAction, perAction, 0, 0, 0, perAction];
-  const times = [`${minutes[0]} min`, `${minutes[1]} min`, `${minutes[2]} min`, `${minutes[3]} min`, `${hold} d`, `${minutes[5]} min`, `${minutes[6]} min`, `${minutes[7]} min`];
+  const times = [
+    `${minutes[0]} min`,
+    `${minutes[1]} min`,
+    `${minutes[2]} min`,
+    `${minutes[3]} min a week`,
+    `${minutes[4]} min across ${weeks} weeks`,
+    `${minutes[5]} min`,
+    `${minutes[6]} min`,
+    `${minutes[7]} min`,
+  ];
   const steps = actions.map((a, i) => `${a}. Cost: ${money(costs[i])}. Time: ${times[i]}.`);
   // deposit sizing
   const opp = (d: number) => d * TBILL * hold / 365;
