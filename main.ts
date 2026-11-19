@@ -68,6 +68,25 @@ if (hasShots && existsSync(join(outDir, 'dashboard'))) {
   console.log('dossier.json: skipped (preview build — dashboard/screenshots not yet present)');
 }
 
+// ---- ship-gate report: dashboard byte budgets + dossier text/total caps ----
+const dashDir = join(repoRoot, 'dashboard');
+if (existsSync(dashDir)) {
+  const sizes: Record<string, number> = {};
+  let total = 0;
+  for (const f of readdirSync(dashDir)) { const n = readFileSync(join(dashDir, f)).length; sizes[f] = n; total += n; }
+  const caps: Record<string, number> = { 'index.html': 4096, 'app.css': 8192, 'app.js': 33792 };
+  const over = Object.entries(caps).filter(([f, b]) => (sizes[f] ?? 0) > b).map(([f]) => f);
+  const ok = over.length === 0 && total <= 45000;
+  console.log(`  dashboard bytes: ${Object.entries(sizes).map(([f, n]) => `${f} ${n}`).join(' · ')} · total ${total}/45000 — ${ok ? 'within budget' : 'OVER (' + over.join(',') + ')'}`);
+}
+const dossierPath = join(outDir, 'dossier.json');
+if (existsSync(dossierPath)) {
+  const doc = JSON.parse(readFileSync(dossierPath, 'utf8'));
+  const textBytes = Buffer.byteLength(doc.text, 'utf8');
+  const totalBytes = readFileSync(dossierPath).length;
+  console.log(`  dossier: ${doc.images.length} images · text ${textBytes}/65536 · total ${totalBytes}/700000 — ${textBytes <= 65536 && totalBytes <= 700000 ? 'within caps' : 'OVER CAP'}`);
+}
+
 // ---- printed validation summary ----
 const v = board.validation;
 const x = (n: number) => 'x' + n.toFixed(4);

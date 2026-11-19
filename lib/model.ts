@@ -819,7 +819,8 @@ export function buildRadar(snapshot: Snapshot): Board {
   for (const r of rows) verdicts[r.verdict as 'FARM' | 'THIN' | 'SKIP']++;
   const totalImplied = rows.reduce((s, r) => s + r.implied_value_usd, 0);
   const best = [...rows].sort((a, b) => b.net_per_hour_implied - a.net_per_hour_implied)[0];
-  const fetchedLine = snapshot.source.replace(/^DefiLlama\s+/, '').replace('https://api.llama.fi/protocols, ', '');
+  const fm = snapshot.source.match(/fetched (\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+  const fetchedLine = fm ? `DefiLlama, fetched ${fm[1]} ${fm[2]} UTC` : snapshot.source.replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim();
 
   const validation: Validation = { ...valueValidation, odds, tilts: tiltStat };
   const board: Board = {

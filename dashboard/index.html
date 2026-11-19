@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Launch Atlas 4</title>
+<link rel="stylesheet" href="app.css">
+<style>
+.vhead{font-size:14px;color:#fff;font-weight:600;margin-bottom:8px}.backbtn{background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:10.5px;cursor:pointer;margin-bottom:8px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.dpanel{padding:8px 11px}.dpanel h4{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.arith{font-size:10.5px;line-height:1.5;color:var(--muted)}.arith b{color:var(--ink)}.arith .g{color:var(--gold)}.term{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:1px 0}.term span:last-child{color:var(--ink)}
+.steps{list-style:none}.steps li{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid var(--line);font-size:10.5px;line-height:1.35}.steps .n{flex:0 0 18px;height:18px;line-height:16px;text-align:center;border:1px solid var(--line);border-radius:4px;color:var(--gold);font-size:9.5px;font-weight:600}.steps .tx{flex:1;color:var(--muted)}.steps .ct{display:flex;gap:4px}.steps .ct em{font-style:normal;font-size:9px;border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--ink);background:var(--panel2);white-space:nowrap}
+.satable{width:100%;border-collapse:collapse;font-size:11px}.satable th{font-size:9px;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--panel2);position:sticky;top:0}.satable td{padding:5px 8px;border-bottom:1px solid var(--line);color:var(--muted);text-align:left}.satable td.n{color:var(--ink);font-weight:600}.satable .rg{font-size:9px;color:var(--faint)}
+.method{max-width:920px}.method h4{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin:13px 0 5px}.method p,.method li{font-size:11.5px;line-height:1.6;color:var(--muted)}.method b{color:var(--ink)}.method ul{list-style:none}.method li{padding:2px 0;border-bottom:1px solid var(--line)}.method .rule{border:1px solid var(--gold);border-radius:6px;padding:9px 11px;color:var(--ink);background:rgba(233,180,76,.06);font-size:11.5px;line-height:1.55;margin:6px 0}.method code{color:var(--teal);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px}
+</style>
+</head>
+<body>
+<header id="hdr">
+  <div class="radar"></div>
+  <div><h1>Launch Atlas 4</h1><div id="claim"></div></div>
+  <div id="meta"></div>
+  <nav id="tabs">
+    <button class="tab on" data-v="board">Board</button>
+    <button class="tab" data-v="detail">Detail</button>
+    <button class="tab" data-v="setaside">Set aside</button>
+    <button class="tab" data-v="method">Method</button>
+  </nav>
+</header>
+<section id="kpi" class="panel"></section>
+<div id="acct"><div id="acctbar"></div><div id="acctleg"></div></div>
+<div id="selfcheck"></div>
+<div id="boardview">
+  <div id="split">
+    <div id="left">
+      <div id="controls"></div>
+      <div id="tablewrap"></div>
+    </div>
+    <aside id="rail">
+      <section id="panelA" class="panel rpanel"></section>
+      <section id="panelB" class="panel rpanel"></section>
+    </aside>
+  </div>
+</div>
+<section id="detail" class="view"></section>
+<section id="setaside" class="view"></section>
+<section id="method" class="view"></section>
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
